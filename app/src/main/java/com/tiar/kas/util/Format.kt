@@ -13,7 +13,7 @@ private val rupiahFormat = NumberFormat.getCurrencyInstance(localeId).apply {
 
 fun formatRupiah(amount: Long): String = rupiahFormat.format(amount)	// 100000 menjadi Rp100.000
 
-fun formatDate(millis: Long): String = SimpleDateFormat("dd MM YYYY HH:mm", localeId).format(Date(millis))	// 17 Nov 2026 05:30
+fun formatDate(millis: Long): String = SimpleDateFormat("dd MMM yyyy HH:mm", localeId).format(Date(millis))	// 17 Nov 2026 05:30
 
 fun formatCompact(amount: Long): String = when {	// nominal ringkas 1000000 menjadi 1jt
 	amount >= 1_000_000 ->

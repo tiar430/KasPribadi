@@ -13,13 +13,15 @@ import androidx.room.RoomDatabase
     	Category::class,
     	MoneyTransaction::class,
     	Budget::class,
-    	TransactionTemplate::class
+    	TransactionTemplate::class,
+    	RecurringRule::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,                    // 1. ubah dari false ke true
     autoMigrations = [
     	AutoMigration(from = 3, to = 4),
-    	AutoMigration(from = 4, to = 5)
+    	AutoMigration(from = 4, to = 5),
+    	AutoMigration(from = 5, to = 6)
     ]
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -29,6 +31,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun budgetDao(): BudgetDao
     abstract fun templateDao(): TemplateDao
+    abstract fun recurringDao(): RecurringDao
 
     companion object {
         @Volatile

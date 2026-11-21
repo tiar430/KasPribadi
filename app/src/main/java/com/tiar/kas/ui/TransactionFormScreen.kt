@@ -3,6 +3,7 @@ package com.tiar.kas.ui
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.widget.Toast
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -36,12 +38,16 @@ import androidx.compose.ui.unit.dp
 import com.tiar.kas.data.AppDatabase
 import com.tiar.kas.data.Category
 import com.tiar.kas.data.CategoryType
+import com.tiar.kas.data.Frequency
 import com.tiar.kas.data.MoneyTransaction
+import com.tiar.kas.data.processRecurring
+import com.tiar.kas.data.RecurringRule
 import com.tiar.kas.data.TransactionTemplate
 import com.tiar.kas.data.TransactionType
 import com.tiar.kas.util.formatDateOnly
 import com.tiar.kas.util.formatRupiah
 import com.tiar.kas.util.formatTime
+import com.tiar.kas.util.label
 import java.util.Calendar
 import kotlinx.coroutines.launch
 
@@ -55,6 +61,7 @@ fun TransactionFormScreen(
     val templateDao = db.templateDao()
     val accounts by remember { db.accountDao().observeAll() }.collectAsState(initial = emptyList())
     val categories by remember { db.categoryDao().observeAll() }.collectAsState(initial = emptyList())
+    val templates by remember { templateDao.observeAll() }.collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -65,6 +72,7 @@ fun TransactionFormScreen(
     var toAccountId by rememberSaveable { mutableStateOf<Long?>(null) }
     var categoryId by rememberSaveable { mutableStateOf<Long?>(null) }
     var note by rememberSaveable { mutableStateOf("") }
+    var repeat by rememberSaveable { mutableStateOf<Frequency?>(null) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
 
     // true kalau data sudah dimuat, transaksi baru dianggap sudah dimuat sejak awal
@@ -108,6 +116,31 @@ fun TransactionFormScreen(
             if (editId == null) "Transaksi baru" else "Edit transaksi",
             style = MaterialTheme.typography.titleLarge
         )
+
+        if (editId == null && templates.isNotEmpty()) {
+        	Text("Pakai template", style = MaterialTheme.typography.labelLarge)
+        	Row(
+        		modifier = Modifier
+        			.fillMaxWidth()
+        			.horizontalScroll(rememberScrollState()),
+        		horizontalArrangement = Arrangement.spacedBy(8.dp)
+        	) {
+        		templates.forEach { t ->
+        			AssistChip(
+        				onClick = {
+        					type = t.type
+        					amountText = if (t.amount > 0) t.amount.toString() else ""
+        					accountId = t.accountId
+        					toAccountId = t.toAccountId
+        					categoryId = t.categoryId
+        					note = t.note
+        					error = null
+        				},
+        				label = { Text(t.name) }
+        			)
+        		}
+        	}
+        }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TransactionType.entries.forEach { t ->
@@ -180,6 +213,21 @@ fun TransactionFormScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
+        if (editId == null) {
+        	PickerField(
+        		label = "Ulangi",
+        		selectedText = repeat?.label() ?: "Tidak berulang",
+        		options = listOf(-1L to "Tidak berulang") + Frequency.entries.map { it.ordinal.toLong() to it.label() },
+        		onSelect = { id -> repeat = if (id == -1L) null else Frequency.entries[id.toInt()] }
+        	)
+        	repeat?.let { freq ->
+        		Text(
+        			"Mulai ${formatDateOnly(dateMillis)}, lalu ${freq.label().lowercase()}. Tanggal yang belum tiba dicatat saat jatuh tempo",
+        			style = MaterialTheme.typography.bodySmall
+        		)
+        	}
+        }
+
         PickerField(
             label = if (type == TransactionType.TRANSFER) "Dari akun" else "Akun",
             selectedText = accounts.firstOrNull { it.id == accountId }?.name,
@@ -212,14 +260,7 @@ fun TransactionFormScreen(
 
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        	TextButton(onClick = {
-        		templateError = null
-        		showTemplateDialog = true
-        	}) {
-        		Text("Simpan sebagai template")
-        	}
-        	
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {        	
             OutlinedButton(onClick = onClose) { Text("Batal") }
 
             Button(onClick = {
@@ -238,19 +279,37 @@ fun TransactionFormScreen(
                 }
 
                 if (error == null && from != null) {
+                	val freq = repeat
                     scope.launch {
-                        val tx = MoneyTransaction(
-                            id = editId ?: 0,       // 0 membuat Room membuat id baru
-                            date = dateMillis,
-                            type = type,
-                            amount = amount,
-                            accountId = from,
-                            toAccountId = if (type == TransactionType.TRANSFER) to else null,
-                            categoryId = if (type == TransactionType.TRANSFER) null else cat,
-                            note = note.trim()
-                        )
-                        if (editId == null) dao.insert(tx) else dao.update(tx)
-                        onClose()
+                    	if (editId == null && freq != null) {
+                    		db.recurringDao().insert(
+                    			RecurringRule(
+                    				type = type,
+                    				amount = amount,
+                    				accountId = from,
+                    				toAccountId = if (type == TransactionType.TRANSFER) to else null,
+                    				categoryId = if (type == TransactionType.TRANSFER) null else cat,
+                    				note = note.trim(),
+                    				frequency = freq,
+                    				startDate = dateMillis
+                    			)
+                    		)
+                    		val created = processRecurring(db)
+                    		Toast.makeText(context, "Aturan berulang dibuat, $created transaksi dicatat", Toast.LENGTH_SHORT).show()
+                    	} else {
+                    		val tx = MoneyTransaction(
+                    			id = editId ?: 0,
+                    			date = dateMillis,
+                    			type = type,
+                    			amount = amount,
+                    			accountId = from,
+                    			toAccountId = if (type == TransactionType.TRANSFER) to else null,
+                    			categoryId = if (type == TransactionType.TRANSFER) null else cat,
+                    			note = note.trim()
+                    		)
+                    		if (editId == null) dao.insert(tx) else dao.update(tx)
+                    	}
+                    	onClose()
                     }
                 }
             }) {
@@ -264,6 +323,13 @@ fun TransactionFormScreen(
                 }
             }
         }
+
+        TextButton(onClick = {
+        	templateError = null
+        	showTemplateDialog = true
+        }) {
+        	Text("Simpan sebagai template")
+        }        
     }
 
     // dialog konfirmasi supaya transaksi tidak terhapus karena salah ketuk
@@ -309,7 +375,7 @@ fun TransactionFormScreen(
     				val name = templateName.trim()
     				val from = accountId
     				templateError = when {
-    					name.isEmpty() -> "Name template wajib diisi"
+    					name.isEmpty() -> "Nama template wajib diisi"
     					from == null -> "Pilih akun di form dulu"
     					type == TransactionType.TRANSFER && toAccountId == null -> "Pilih akun tujuan di form dulu"
     					type != TransactionType.TRANSFER && categoryId == null -> "Pilih kategori di form dulu"

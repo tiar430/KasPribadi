@@ -8,7 +8,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 // MMMM berarti nama bulan lengkap, yyyy berarti tahun 4 digit
-private val localeId = Locale.forLanguageTag("id-ED")
+private val localeId = Locale.forLanguageTag("id-ID")
 private val monthFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", localeId)
 private val dayFormatter = DateTimeFormatter.ofPattern("EEEE, d MMM", localeId)	// contoh Kamis, 19 Nov
 private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm", localeId)		// contoh 08:30
