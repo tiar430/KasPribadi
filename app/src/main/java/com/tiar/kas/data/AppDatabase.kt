@@ -1,0 +1,49 @@
+package com.tiar.kas.data
+
+import android.content.Context
+import androidx.room.AutoMigration
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+
+// daftar tabel dan versi skema, versi naik setiap struktur tabel berubah
+@Database(
+    entities = [
+    	Account::class,
+    	Category::class,
+    	MoneyTransaction::class,
+    	Budget::class,
+    	TransactionTemplate::class
+    ],
+    version = 5,
+    exportSchema = true,                    // 1. ubah dari false ke true
+    autoMigrations = [
+    	AutoMigration(from = 3, to = 4),
+    	AutoMigration(from = 4, to = 5)
+    ]
+)
+abstract class AppDatabase : RoomDatabase() {
+
+    abstract fun accountDao(): AccountDao
+    abstract fun categoryDao(): CategoryDao
+    abstract fun transactionDao(): TransactionDao
+    abstract fun budgetDao(): BudgetDao
+    abstract fun templateDao(): TemplateDao
+
+    companion object {
+        @Volatile
+        private var INSTANCE: AppDatabase? = null
+
+        fun get(context: Context): AppDatabase =
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "kas.db"
+                )
+                    // 2. baris fallbackToDestructiveMigration() dihapus
+                    .build()
+                    .also { INSTANCE = it }
+            }
+    }
+}
