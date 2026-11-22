@@ -14,5 +14,7 @@ data class Account(
 	val accountGroup: AccountGroup,
 	val initialBalance: Long = 0,		// saldo awal dalam rupiah
 	val includeInTotal: Boolean = true,	// ikut dihitung di total aset atau tidak
-	val sortOrder: Int = 0				// urutan tampil di daftar
+	val sortOrder: Int = 0,				// urutan tampil di daftar
+	val statementDay: Int? = null,		// tanggal cetak tagihan, 1 sampai 31, khusus kartu kredit
+	val dueDay: Int? = null				// tanggal jatuh tempo pembayaran
 )

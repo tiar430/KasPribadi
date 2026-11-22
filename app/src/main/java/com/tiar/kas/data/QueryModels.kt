@@ -5,6 +5,8 @@ data class AccountBalance(
     val name: String,
     val accountGroup: AccountGroup,
     val includeInTotal: Boolean,       // baru, untuk menyaring total aset
+    val statementDay: Int?,
+    val dueDay: Int?,
     val balance: Long
 )
 
@@ -36,4 +38,10 @@ data class CategoryTotal(
 data class MonthTotal(
 	val ym: String,
 	val total: Long
+)
+
+// aktivitas satu kartu dalam satu periode
+data class CardActivity(
+	val charges: Long,		// belanja dikurangi refund
+	val payments: Long		// transfer masuk ke kartu
 )

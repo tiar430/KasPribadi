@@ -48,6 +48,8 @@ fun AccountFormScreen(db: AppDatabase, editId: Long?, onClose: () -> Unit) {
     var isDebt by rememberSaveable { mutableStateOf(false) }       // true berarti saldo awal minus
     var includeInTotal by rememberSaveable { mutableStateOf(true) }
     var sortOrder by rememberSaveable { mutableStateOf(0) }        // disimpan supaya urutan tidak berubah saat edit
+    var statementText by rememberSaveable { mutableStateOf("") }
+    var dueText by rememberSaveable { mutableStateOf("") }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
     var loaded by rememberSaveable { mutableStateOf(editId == null) }
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
@@ -62,6 +64,8 @@ fun AccountFormScreen(db: AppDatabase, editId: Long?, onClose: () -> Unit) {
                 isDebt = acc.initialBalance < 0
                 includeInTotal = acc.includeInTotal
                 sortOrder = acc.sortOrder
+                statementText = acc.statementDay?.toString() ?: ""
+                dueText = acc.dueDay?.toString() ?: ""
             }
             loaded = true
         }
@@ -94,6 +98,34 @@ fun AccountFormScreen(db: AppDatabase, editId: Long?, onClose: () -> Unit) {
             options = AccountGroup.entries.map { it.ordinal.toLong() to it.label() },
             onSelect = { group = AccountGroup.entries[it.toInt()] }   // ambil enum dari nomor urutnya
         )
+
+        if (group == AccountGroup.KARTU_KREDIT) {
+        	Row(
+        		modifier = Modifier.fillMaxWidth(),
+        		horizontalArrangement = Arrangement.spacedBy(8.dp)
+        	) {
+        		OutlinedTextField(
+        			value = statementText,
+        			onValueChange = { input -> statementText = input.filter { it.isDigit() }.take(2) },
+        			label = { Text("Tgl cetak") },
+        			keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        			singleLine = true,
+        			modifier = Modifier.weight(1f)
+        		)
+        		OutlinedTextField(
+        			value = dueText,
+        			onValueChange = { input -> dueText = input.filter { it.isDigit() }.take(2) },
+        			label = { Text("Tgl jatuh tempo") },
+        			keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        			singleLine = true,
+        			modifier = Modifier.weight(1f)
+        		)
+        	}
+        	Text(
+        		"Contoh cetak 25 dan jatuh tempo 10. Tanggal 31 di bulan pendek dianggap akhir bulan",
+        		style = MaterialTheme.typography.bodySmall
+        	)
+        }
 
         OutlinedTextField(
             value = initialText,
@@ -134,8 +166,16 @@ fun AccountFormScreen(db: AppDatabase, editId: Long?, onClose: () -> Unit) {
             Button(onClick = {
                 val trimmed = name.trim()
                 val amount = initialText.toLongOrNull() ?: 0L
-                error = if (trimmed.isEmpty()) "Nama akun wajib diisi" else null
+                val isCard = group == AccountGroup.KARTU_KREDIT
 
+                fun validDay(text: String) = text.isEmpty() || text.toIntOrNull()?.let { it in 1..31 } == true
+                error = when {
+                	trimmed.isEmpty() -> "Nama akun wajib diisi"
+                	isCard && !validDay(statementText) -> "Tanggal cetak harus 1 sampai 31"
+                	isCard && !validDay(dueText) -> "Tanggal cetak harus 1 sampai 31"
+                	else -> null
+                }
+                
                 if (error == null) {
                     scope.launch {
                         val acc = Account(
@@ -144,7 +184,9 @@ fun AccountFormScreen(db: AppDatabase, editId: Long?, onClose: () -> Unit) {
                             accountGroup = group,
                             initialBalance = if (isDebt) -amount else amount,
                             includeInTotal = includeInTotal,
-                            sortOrder = if (editId == null) accountDao.nextSortOrder() else sortOrder
+                            sortOrder = if (editId == null) accountDao.nextSortOrder() else sortOrder,
+                            statementDay = if (isCard) statementText.toIntOrNull() else null,
+                            dueDay = if (isCard) dueText.toIntOrNull() else null
                         )
                         if (editId == null) accountDao.insert(acc) else accountDao.update(acc)
                         onClose()

@@ -13,13 +13,18 @@ import kotlinx.serialization.Serializable
 const val NEW_ID = -1L
 
 @Serializable data object HomeRoute
-@Serializable data class TxFormRoute(val editId: Long = NEW_ID)
+@Serializable data class TxFormRoute(
+	val editId: Long = NEW_ID,
+	val payCardId: Long = NEW_ID,
+	val payAmount: Long = 0L
+)
 @Serializable data object AccountsRoute
 @Serializable data class AccountFormRoute(val editId: Long = NEW_ID)
 @Serializable data object SearchRoute
 @Serializable data object StatsRoute
 @Serializable data object BudgetRoute
 @Serializable data object TemplatesRoute
+@Serializable data object RecurringRoute
 
 private fun Long.asEditId(): Long? = takeIf { it != NEW_ID }
 
@@ -44,7 +49,8 @@ fun AppNavigation(db: AppDatabase) {
                 onSearch = { navController.navigate(SearchRoute) },
                 onStats = { navController.navigate(StatsRoute) },
                 onBudget = { navController.navigate(BudgetRoute) },
-                onTemplates = { navController.navigate(TemplatesRoute) }
+                onTemplates = { navController.navigate(TemplatesRoute) },
+                onRecurring = { navController.navigate(RecurringRoute) }
             )
         } // akhir HomeRoute
 
@@ -53,6 +59,8 @@ fun AppNavigation(db: AppDatabase) {
             TransactionFormScreen(
                 db = db,
                 editId = route.editId.asEditId(),
+                payCardId = route.payCardId.asEditId(),
+                payAmount = route.payAmount,
                 onClose = { navController.safePop() }
             )
         } // akhir TxFormRoute
@@ -62,7 +70,10 @@ fun AppNavigation(db: AppDatabase) {
                 db = db,
                 onBack = { navController.safePop() },
                 onAdd = { navController.navigate(AccountFormRoute()) },
-                onEdit = { id -> navController.navigate(AccountFormRoute(editId = id)) }
+                onEdit = { id -> navController.navigate(AccountFormRoute(editId = id)) },
+                onPayCard = { cardId, amount ->
+                	navController.navigate(TxFormRoute(payCardId = cardId, payAmount = amount))
+                }
             )
         } // akhir AccountsRoute
 
@@ -102,5 +113,11 @@ fun AppNavigation(db: AppDatabase) {
         		onBack = { navController.safePop() }
         	)
         } // akhir TemplatesRoute
+        composable<RecurringRoute> {
+        	RecurringListScreen(
+        		db = db,
+        		onBack = { navController.safePop() }
+        	)
+        } // akhir RecurringRoute
     } // akhir NavHost
 } // akhir AppNavigation

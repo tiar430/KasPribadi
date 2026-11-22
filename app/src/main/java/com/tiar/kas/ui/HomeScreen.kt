@@ -57,7 +57,8 @@ fun HomeScreen(
     onSearch: () -> Unit,
     onStats: () -> Unit,
     onBudget: () -> Unit,
-    onTemplates: () -> Unit
+    onTemplates: () -> Unit,
+    onRecurring: () -> Unit
 ) {
     val txDao = db.transactionDao()
     var month by rememberSaveable { mutableStateOf(YearMonth.now()) }
@@ -164,6 +165,7 @@ fun HomeScreen(
                     TextButton(onClick = onStats) { Text("Statistik") }
                     TextButton(onClick = onBudget) { Text("Budget") }
                     TextButton(onClick = onTemplates) { Text("Template") }
+                    TextButton(onClick = onRecurring) { Text("Berulang") }
                     TextButton(onClick = onSearch) { Text("Cari") }
                 }
             }

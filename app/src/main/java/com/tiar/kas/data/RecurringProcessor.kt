@@ -19,6 +19,11 @@ fun RecurringRule.occurrenceAt(n: Int): Long {
 }
 
 fun RecurringRule.nextRun(): Long = occurrenceAt(runCount)
+fun RecurringRule.skipMissed(now: Long = System.currentTimeMillis()): Int {
+	var n = runCount
+	while (occurrenceAt(n) <= now && n - runCount < 100_000) n++
+	return n
+}
 suspend fun processRecurring(db: AppDatabase, now: Long = System.currentTimeMillis()): Int {
 	var created = 0
 	db.withTransaction {

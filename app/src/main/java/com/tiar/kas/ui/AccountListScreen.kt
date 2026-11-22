@@ -34,7 +34,8 @@ fun AccountListScreen(
     db: AppDatabase,
     onBack: () -> Unit,
     onAdd: () -> Unit,
-    onEdit: (Long) -> Unit
+    onEdit: (Long) -> Unit,
+    onPayCard: (Long, Long) -> Unit
 ) {
     val balances by remember { db.accountDao().observeBalances() }.collectAsState(initial = emptyList())
 
@@ -79,6 +80,18 @@ fun AccountListScreen(
                             Text(formatRupiah(acc.balance), style = MaterialTheme.typography.bodyLarge)
                             if (!acc.includeInTotal) {
                                 Text("Tidak dihitung di total", style = MaterialTheme.typography.bodySmall)
+                            }
+
+                            val s = acc.statementDay
+                            val d = acc.dueDay
+                            if (acc.accountGroup == AccountGroup.KARTU_KREDIT && s != null && d != null) {
+                            	CardBillInfo(
+                            		db = db,
+                            		cardId = acc.id,
+                            		statementDay = s,
+                            		dueDay = d,
+                            		onPay = { amount -> onPayCard(acc.id, amount) }
+                            	)
                             }
                         }
                         HorizontalDivider()

@@ -140,4 +140,17 @@ interface TransactionDao {
 		ORDER BY ym
 	""")
 	fun observeMonthlyTotals(type: String, categoryId: Long?, start: Long, end: Long): Flow<List<MonthTotal>>
+
+	@Query("""
+		SELECT COALESCE(SUM(CASE
+			WHEN accountId = :cardId AND type = 'PENGELUARAN' THEN amount
+			WHEN accountId = :cardId AND type = 'TRANSFER' THEN amount
+			WHEN accountId = :cardId AND type = 'PEMASUKAN' THEN -amount
+			ELSE 0 END), 0) AS charges,
+			COALESCE(SUM(CASE WHEN toAccountId = :cardId THEN amount ELSE 0 END), 0) AS payments
+		FROM transactions
+		WHERE (accountId = :cardId OR toAccountId = :cardId)
+			AND date >= :start AND date < :end
+	""")
+	fun observeCardActivity(cardId: Long, start: Long, end: Long): Flow<CardActivity>
 }

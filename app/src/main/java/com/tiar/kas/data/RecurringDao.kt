@@ -22,6 +22,9 @@ interface RecurringDao {
 	@Query("UPDATE recurring_rules SET active = :active WHERE id = :id")
 	suspend fun setActive(id: Long, active: Boolean)
 
+	@Query("UPDATE recurring_rules SET active = 1, runCount = :runCount WHERE id = :id")
+	suspend fun resume(id: Long, runCount: Int)
+
 	@Query("DELETE FROM recurring_rules WHERE id = :id")
 	suspend fun deleteById(id: Long)
 }

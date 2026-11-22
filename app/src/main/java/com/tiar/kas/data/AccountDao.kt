@@ -10,11 +10,11 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface AccountDao {
 
-    @Query("SELECT id, name, accountGroup, initialBalance, includeInTotal, sortOrder FROM accounts ORDER BY sortOrder, id")
+    @Query("SELECT id, name, accountGroup, initialBalance, includeInTotal, sortOrder, statementDay, dueDay FROM accounts ORDER BY sortOrder, id")
     fun observeAll(): Flow<List<Account>>
 
     @Query("""
-        SELECT a.id, a.name, a.accountGroup, a.includeInTotal,
+        SELECT a.id, a.name, a.accountGroup, a.includeInTotal, a.statementDay, a.dueDay,
                a.initialBalance
                + COALESCE((SELECT SUM(CASE WHEN t.type = 'PEMASUKAN' THEN t.amount ELSE -t.amount END)
                            FROM transactions t
@@ -29,7 +29,7 @@ interface AccountDao {
     fun observeBalances(): Flow<List<AccountBalance>>
 
     // baru, mengambil satu akun untuk form edit
-    @Query("SELECT id, name, accountGroup, initialBalance, includeInTotal, sortOrder FROM accounts WHERE id = :id")
+    @Query("SELECT id, name, accountGroup, initialBalance, includeInTotal, sortOrder, statementDay, dueDay FROM accounts WHERE id = :id")
     suspend fun getById(id: Long): Account?
 
     // baru, nomor urut untuk akun baru supaya tampil paling bawah

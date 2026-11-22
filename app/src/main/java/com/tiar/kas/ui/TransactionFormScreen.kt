@@ -55,6 +55,8 @@ import kotlinx.coroutines.launch
 fun TransactionFormScreen(
     db: AppDatabase,
     editId: Long?,                      // null untuk transaksi baru, berisi id untuk edit
+    payCardId: Long? = null,
+    payAmount: Long = 0L,
     onClose: () -> Unit
 ) {
     val dao = db.transactionDao()
@@ -65,13 +67,13 @@ fun TransactionFormScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var type by rememberSaveable { mutableStateOf(TransactionType.PENGELUARAN) }
+    var type by rememberSaveable { mutableStateOf(if (payCardId != null) TransactionType.TRANSFER else TransactionType.PENGELUARAN) }
     var dateMillis by rememberSaveable { mutableStateOf(System.currentTimeMillis()) }
-    var amountText by rememberSaveable { mutableStateOf("") }
+    var amountText by rememberSaveable { mutableStateOf(if (payAmount > 0) payAmount.toString() else "") }
     var accountId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var toAccountId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var toAccountId by rememberSaveable { mutableStateOf(payCardId) }
     var categoryId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var note by rememberSaveable { mutableStateOf("") }
+    var note by rememberSaveable { mutableStateOf(if (payCardId != null) "Bayar tagihan kartu" else "") }
     var repeat by rememberSaveable { mutableStateOf<Frequency?>(null) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -113,11 +115,15 @@ fun TransactionFormScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            if (editId == null) "Transaksi baru" else "Edit transaksi",
-            style = MaterialTheme.typography.titleLarge
+        	when {
+        		editId != null -> "Edit transaksi"
+        		payCardId != null -> "Bayar tagihan"
+        		else -> "Transaksi baru"
+        	},
+        	style = MaterialTheme.typography.titleLarge
         )
 
-        if (editId == null && templates.isNotEmpty()) {
+        if (editId == null && payCardId == null && templates.isNotEmpty()) {
         	Text("Pakai template", style = MaterialTheme.typography.labelLarge)
         	Row(
         		modifier = Modifier
