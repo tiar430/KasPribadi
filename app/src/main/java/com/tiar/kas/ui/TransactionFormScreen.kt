@@ -2,7 +2,12 @@ package com.tiar.kas.ui
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -31,10 +37,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.tiar.kas.data.AppDatabase
 import com.tiar.kas.data.Category
 import com.tiar.kas.data.CategoryType
@@ -48,6 +57,8 @@ import com.tiar.kas.util.formatDateOnly
 import com.tiar.kas.util.formatRupiah
 import com.tiar.kas.util.formatTime
 import com.tiar.kas.util.label
+import com.tiar.kas.util.PhotoStore
+import java.io.File
 import java.util.Calendar
 import kotlinx.coroutines.launch
 
@@ -75,6 +86,10 @@ fun TransactionFormScreen(
     var categoryId by rememberSaveable { mutableStateOf<Long?>(null) }
     var note by rememberSaveable { mutableStateOf(if (payCardId != null) "Bayar tagihan kartu" else "") }
     var repeat by rememberSaveable { mutableStateOf<Frequency?>(null) }
+    var photoName by rememberSaveable { mutableStateOf<String?>(null) }
+    var originalPhoto by rememberSaveable { mutableStateOf<String?>(null) }
+    var cameraTemp by rememberSaveable { mutableStateOf<String?>(null) }
+    var showPhoto by rememberSaveable { mutableStateOf(false) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
 
     // true kalau data sudah dimuat, transaksi baru dianggap sudah dimuat sejak awal
@@ -97,6 +112,8 @@ fun TransactionFormScreen(
                 toAccountId = tx.toAccountId
                 categoryId = tx.categoryId
                 note = tx.note
+                photoName = tx.photoPath
+                originalPhoto = tx.photoPath
             }
             loaded = true      // cegah pemuatan ulang yang menimpa editanmu saat HP dilipat
         }
@@ -106,6 +123,31 @@ fun TransactionFormScreen(
         if (type == TransactionType.PEMASUKAN) CategoryType.PEMASUKAN
         else CategoryType.PENGELUARAN
     val categoryOptions = buildCategoryOptions(categories, categoryType)
+
+    // hasil pilihan foto datang lewat lambda ini, uri null kalau batal
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+    	if (uri != null) {
+    		scope.launch {
+    			val imported = PhotoStore.import(context, uri)
+    			if (imported != null) photoName = imported
+    			else Toast.makeText(context, "Foto gagal dibaca", Toast.LENGTH_SHORT).show()
+    		}
+    	}
+    }
+
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+    	val temp = cameraTemp
+    	if (success && temp != null) {
+    		scope.launch {
+    			val file = File(context.cacheDir, "camera/$temp")
+    			val imported = PhotoStore.import(context, Uri.fromFile(file))
+    			file.delete()
+    			if (imported != null) photoName = imported
+    			else Toast.makeText(context, "Foto gagal dibaca", Toast.LENGTH_SHORT).show()
+    		}
+    	}
+    	cameraTemp = null
+    }
 
     Column(
         modifier = Modifier
@@ -264,6 +306,34 @@ fun TransactionFormScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
+		Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+			val name = photoName
+			if (name != null) {
+				Row(
+					horizontalArrangement = Arrangement.spacedBy(8.dp),
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					PhotoThumbnail(
+						name = name,
+						modifier = Modifier
+							.size(72.dp)
+							.clickable { showPhoto = true }
+					)
+					TextButton(onClick = { photoName = null }) { Text("Hapus foto") }
+				}
+			}
+			Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+				OutlinedButton(onClick = {
+					photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+				}) { Text("Galeri") }
+				OutlinedButton(onClick = {
+					val (tempName, uri) = PhotoStore.newCameraTarget(context)
+					cameraTemp = tempName
+					camera.launch(uri)
+				}) { Text("Kamera") }
+			}
+		}
+
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {        	
@@ -311,9 +381,11 @@ fun TransactionFormScreen(
                     			accountId = from,
                     			toAccountId = if (type == TransactionType.TRANSFER) to else null,
                     			categoryId = if (type == TransactionType.TRANSFER) null else cat,
-                    			note = note.trim()
+                    			note = note.trim(),
+                    			photoPath = photoName
                     		)
                     		if (editId == null) dao.insert(tx) else dao.update(tx)
+                    		if (originalPhoto != null && originalPhoto != photoName) PhotoStore.delete(context, originalPhoto)
                     	}
                     	onClose()
                     }
@@ -348,6 +420,7 @@ fun TransactionFormScreen(
                 TextButton(onClick = {
                     scope.launch {
                         dao.deleteById(editId)
+                        PhotoStore.delete(context, originalPhoto)
                         onClose()
                     }
                 }) {
@@ -412,6 +485,20 @@ fun TransactionFormScreen(
     			TextButton(onClick = { showTemplateDialog = false }) { Text("Batal") }
     		}
     	)
+    }
+
+    val viewName = photoName
+    if (showPhoto && viewName != null) {
+    	Dialog(onDismissRequest = { showPhoto = false }) {
+    		PhotoThumbnail(
+    			name = viewName,
+    			maxSide = 1600,
+    			contentScale = ContentScale.Fit,
+    			modifier = Modifier
+    				.fillMaxWidth()
+    				.clickable { showPhoto = false }
+    		)
+    	}
     }
 }
 

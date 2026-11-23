@@ -31,11 +31,14 @@ interface TransactionDao {
     suspend fun countByAccount(id: Long): Int
 
 	// tanda ? karena id yang dicari bisa saja sudah tidak ada
-	@Query("SELECT id, date, type, amount, accountId, toAccountId, categoryId, note FROM transactions WHERE id = :id")
+	@Query("SELECT id, date, type, amount, accountId, toAccountId, categoryId, note, photoPath FROM transactions WHERE id = :id")
 	suspend fun getById(id: Long): MoneyTransaction?
 
+	@Query("SELECT photoPath FROM transactions WHERE photoPath IS NOT NULL")
+	suspend fun allPhotoNames(): List<String>
+
 	@Query("""
-		SELECT t.id, t.date, t.type, t.amount, t.note,
+		SELECT t.id, t.date, t.type, t.amount, t.note, t.photoPath,
 			a.name AS accountName,
 			ta.name AS toAccountName,
 			c.name AS categoryName
@@ -48,7 +51,7 @@ interface TransactionDao {
 	fun observeRows(): Flow<List<TransactionRow>>
 
 	@Query("""
-		SELECT t.id, t.date, t.type, t.amount, t.note,
+		SELECT t.id, t.date, t.type, t.amount, t.note, t.photoPath,
 			a.name AS accountName,
 			ta.name AS toAccountName,
 			c.name AS categoryName
@@ -71,7 +74,7 @@ interface TransactionDao {
 	fun observeSummaryBetween(start: Long, end: Long): Flow<MonthSummary>
 
 	@Query("""
-		SELECT t.id, t.date, t.type, t.amount, t.note,
+		SELECT t.id, t.date, t.type, t.amount, t.note, t.photoPath,
 			a.name AS accountName,
 			ta.name AS toAccountName,
 			c.name AS categoryName

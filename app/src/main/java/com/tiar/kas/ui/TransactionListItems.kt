@@ -68,7 +68,8 @@ fun TransactionItem(
         TransactionType.PENGELUARAN -> expenseColor
         TransactionType.TRANSFER -> Color.Unspecified
     }
-    val subline = if (r.note.isBlank()) formatTime(r.date) else "${formatTime(r.date)}  ${r.note}"
+    val photoMark = if (r.photoPath != null) " 📸" else ""
+    val subline = (if (r.note.isBlank()) formatTime(r.date) else "${formatTime(r.date)}  ${r.note}") + photoMark
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(

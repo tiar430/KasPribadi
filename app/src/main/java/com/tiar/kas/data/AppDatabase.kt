@@ -16,13 +16,14 @@ import androidx.room.RoomDatabase
     	TransactionTemplate::class,
     	RecurringRule::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,                    // 1. ubah dari false ke true
     autoMigrations = [
     	AutoMigration(from = 3, to = 4),
     	AutoMigration(from = 4, to = 5),
     	AutoMigration(from = 5, to = 6),
-    	AutoMigration(from = 6, to = 7)
+    	AutoMigration(from = 6, to = 7),
+    	AutoMigration(from = 7, to = 8)
     ]
 )
 abstract class AppDatabase : RoomDatabase() {

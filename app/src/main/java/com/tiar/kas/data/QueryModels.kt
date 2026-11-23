@@ -18,7 +18,8 @@ data class TransactionRow(
     val note: String,
     val accountName: String,
     val toAccountName: String?,
-    val categoryName: String?
+    val categoryName: String?,
+    val photoPath: String?
 )
 
 // ringkasa satu rentang waktu

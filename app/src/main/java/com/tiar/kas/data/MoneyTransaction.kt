@@ -28,5 +28,6 @@ data class MoneyTransaction(
 	val accountId: Long,	// akun sumber uang
 	val toAccountId: Long? = null,	//hanya terisi untuk TRANSFER
 	val categoryId: Long? = null,	// kosong untuk TRANSFER
-	val note: String = ""
+	val note: String = "",
+	val photoPath: String? = null	// nama file foto struk, null kalau tidak ada
 )

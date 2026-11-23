@@ -25,6 +25,8 @@ const val NEW_ID = -1L
 @Serializable data object BudgetRoute
 @Serializable data object TemplatesRoute
 @Serializable data object RecurringRoute
+@Serializable data object SecurityRoute
+@Serializable data object BackupRoute
 
 private fun Long.asEditId(): Long? = takeIf { it != NEW_ID }
 
@@ -50,7 +52,9 @@ fun AppNavigation(db: AppDatabase) {
                 onStats = { navController.navigate(StatsRoute) },
                 onBudget = { navController.navigate(BudgetRoute) },
                 onTemplates = { navController.navigate(TemplatesRoute) },
-                onRecurring = { navController.navigate(RecurringRoute) }
+                onRecurring = { navController.navigate(RecurringRoute) },
+                onSecurity = { navController.navigate(SecurityRoute) },
+                onBackup = { navController.navigate(BackupRoute) }
             )
         } // akhir HomeRoute
 
@@ -119,5 +123,11 @@ fun AppNavigation(db: AppDatabase) {
         		onBack = { navController.safePop() }
         	)
         } // akhir RecurringRoute
+        composable<SecurityRoute> {
+        	SecurityScreen(onBack = { navController.safePop() })
+        } // akhir SecurityRoute
+        composable<BackupRoute> {
+        	BackupScreen(db = db, onBack = { navController.safePop() })
+        } // akhir BackupRoute
     } // akhir NavHost
 } // akhir AppNavigation
