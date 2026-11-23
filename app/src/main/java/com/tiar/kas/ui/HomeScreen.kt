@@ -126,6 +126,10 @@ fun HomeScreen(
         						if (lastBackup == 0L) "Belum pernah backup"
         						else "Backup terakhir $daysSince hari lalu", style = MaterialTheme.typography.titleSmall
         					)
+        					Row {
+        						TextButton(onClick = onBackup) { Text("Backup sekarang") }
+        						TextButton(onClick = { reminderHidden = true }) { Text("Nanti") }
+        					}
         				}
         			}
         		}

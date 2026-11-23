@@ -172,7 +172,7 @@ fun AccountFormScreen(db: AppDatabase, editId: Long?, onClose: () -> Unit) {
                 error = when {
                 	trimmed.isEmpty() -> "Nama akun wajib diisi"
                 	isCard && !validDay(statementText) -> "Tanggal cetak harus 1 sampai 31"
-                	isCard && !validDay(dueText) -> "Tanggal cetak harus 1 sampai 31"
+                	isCard && !validDay(dueText) -> "Tanggal jatuh tempo harus 1 sampai 31"
                 	else -> null
                 }
                 
