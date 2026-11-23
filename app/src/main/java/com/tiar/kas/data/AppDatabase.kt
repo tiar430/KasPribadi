@@ -6,6 +6,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
+const val DB_VERSION = 8
+
 // daftar tabel dan versi skema, versi naik setiap struktur tabel berubah
 @Database(
     entities = [
@@ -16,7 +18,7 @@ import androidx.room.RoomDatabase
     	TransactionTemplate::class,
     	RecurringRule::class
     ],
-    version = 8,
+    version = DB_VERSION,
     exportSchema = true,                    // 1. ubah dari false ke true
     autoMigrations = [
     	AutoMigration(from = 3, to = 4),
@@ -39,16 +41,22 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
-        fun get(context: Context): AppDatabase =
-            INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "kas.db"
-                )
-                    // 2. baris fallbackToDestructiveMigration() dihapus
-                    .build()
-                    .also { INSTANCE = it }
-            }
+        fun get(context: Context): AppDatabase = INSTANCE ?: synchronized(this) {
+        	INSTANCE ?: Room.databaseBuilder(
+            	context.applicationContext,
+                AppDatabase::class.java,
+                "kas.db"
+            )
+            // 2. baris fallbackToDestructiveMigration() dihapus
+           	.build()
+          	.also { INSTANCE = it }
+    	}
+
+    	fun closeAndReset() {
+    		synchronized(this) {
+    			INSTANCE?.close()
+    			INSTANCE = null
+    		}
+    	}
     }
 }

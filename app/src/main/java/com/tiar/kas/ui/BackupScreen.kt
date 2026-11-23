@@ -1,5 +1,6 @@
 package com.tiar.kas.ui
 
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,8 +12,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -22,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -61,6 +65,11 @@ fun BackupScreen(db: AppDatabase, onBack: () -> Unit) {
 		}
 	}
 
+	var pendingRestore by rememberSaveable { mutableStateOf<Uri?>(null) }
+	val openBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+		if (uri != null) pendingRestore = uri
+	}
+
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
@@ -92,5 +101,38 @@ fun BackupScreen(db: AppDatabase, onBack: () -> Unit) {
 		) {
 			Text(if (busy) "Menyimpan..." else "Buat backup")
 		}
+		OutlinedButton(
+			onClick = { openBackup.launch(arrayOf("application/zip", "application/octet-stream")) },
+			enabled = !busy
+		) {
+			Text("Pulihkan backup")
+		}
+	}
+
+	val restoreUri = pendingRestore
+	if (restoreUri != null) {
+		AlertDialog(
+			onDismissRequest = { pendingRestore = null },
+			title = { Text("Pulihkan backup?") },
+			text = { Text("Semua data sekarang diganti dengan isi backup. Data yang belum di-backup akan hilang. Aplikasi akan terbuka ulang.") },
+			confirmButton = {
+				TextButton(onClick = {
+					pendingRestore = null
+					busy = true
+					scope.launch {
+						try {
+							BackupManager.restore(context, restoreUri)
+							BackupManager.restartApp(context)
+						} catch (e: Exception) {
+							busy = false
+							Toast.makeText(context, "Pemulihan gagal: ${e.message}", Toast.LENGTH_LONG).show()
+						}
+					}
+				}) { Text("Pulihkan", color = MaterialTheme.colorScheme.error) }
+			},
+			dismissButton = {
+				TextButton(onClick = { pendingRestore = null }) { Text("Batal") }
+			}
+		)
 	}
 }
