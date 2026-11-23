@@ -14,11 +14,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,11 +33,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.tiar.kas.data.AppDatabase
 import com.tiar.kas.data.MonthSummary
 import com.tiar.kas.data.TransactionRow
 import com.tiar.kas.data.TransactionType
+import com.tiar.kas.util.BackupManager
 import com.tiar.kas.util.dayLabel
 import com.tiar.kas.util.endMillis
 import com.tiar.kas.util.formatRupiah
@@ -45,6 +49,7 @@ import com.tiar.kas.util.startMillis
 import com.tiar.kas.util.toLocalDate
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.temporal.ChronoUnit
 
 private enum class HomeView { HARIAN, KALENDER }
 
@@ -86,6 +91,13 @@ fun HomeScreen(
     val incomeColor = MaterialTheme.colorScheme.primary
     val expenseColor = MaterialTheme.colorScheme.error
 
+    val context = LocalContext.current
+    var reminderHidden by rememberSaveable { mutableStateOf(false) }
+    val lastBackup = BackupManager.lastBackup(context)
+    val reminderDays = BackupManager.reminderDays(context)
+    val daysSince = if (lastBackup > 0) ChronoUnit.DAYS.between(lastBackup.toLocalDate(), LocalDate.now()) else -1L
+    val showReminder = !reminderHidden && reminderDays > 0 && (lastBackup == 0L || daysSince >= reminderDays)
+
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(onClick = onAddClick) {
@@ -99,6 +111,26 @@ fun HomeScreen(
                 .padding(innerPadding),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp)
         ) {
+
+        	if (showReminder) {
+        		item {
+        			Surface(
+        				color = MaterialTheme.colorScheme.tertiaryContainer,
+        				shape = RoundedCornerShape(12.dp),
+        				modifier = Modifier
+        					.fillMaxWidth()
+        					.padding(bottom = 8.dp)
+        			) {
+        				Column(modifier = Modifier.padding(12.dp)) {
+        					Text(
+        						if (lastBackup == 0L) "Belum pernah backup"
+        						else "Backup terakhir $daysSince hari lalu", style = MaterialTheme.typography.titleSmall
+        					)
+        				}
+        			}
+        		}
+        	}
+        
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

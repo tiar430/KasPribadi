@@ -46,3 +46,15 @@ data class CardActivity(
 	val charges: Long,		// belanja dikurangi refund
 	val payments: Long		// transfer masuk ke kartu
 )
+
+// satu baris ekspor, kategori induk dan subkategori dipisah
+data class ExportRow(
+	val date: Long,
+	val type: TransactionType,
+	val amount: Long,
+	val note: String,
+	val accountName: String,
+	val toAccountName: String?,
+	val categoryName: String?,
+	val subcategoryName: String?
+)

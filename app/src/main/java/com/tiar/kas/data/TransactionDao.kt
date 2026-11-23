@@ -156,4 +156,21 @@ interface TransactionDao {
 			AND date >= :start AND date < :end
 	""")
 	fun observeCardActivity(cardId: Long, start: Long, end: Long): Flow<CardActivity>
+
+	// sortir dari terlama agar rapi di excel
+	@Query("""
+		SELECT t.date, t.type, t.amount, t.note,
+				a.name AS accountName,
+				ta.name AS toAccountName,
+				COALESCE(p.name, c.name) AS categoryName,
+				CASE WHEN p.id IS NULL THEN NULL ELSE c.name END AS subcategoryName
+		FROM transactions t
+		JOIN accounts a			ON a.id = t.accountId
+		LEFT JOIN accounts ta	ON ta.id = t.toAccountId
+		LEFT JOIN categories c	ON c.id = t.categoryId
+		LEFT JOIN categories p	ON p.id = c.parentId
+		WHERE t.date >= :start AND t.date < :end
+		ORDER BY t.date, t.id
+	""")
+	suspend fun getExportRows(start: Long, end: Long): List<ExportRow>
 }

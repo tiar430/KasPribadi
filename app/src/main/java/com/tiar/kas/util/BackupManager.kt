@@ -25,6 +25,12 @@ object BackupManager {
 
     fun lastBackup(context: Context): Long = prefs(context).getLong("last_backup", 0L)
 
+    // 0 berarti pengingat mati
+    fun reminderDays(context: Context): Int = prefs(context).getInt("reminder_days", 7)
+    fun setReminderDays(context: Context, days: Int) {
+    	prefs(context).edit().putInt("reminder_days", days).apply()
+    }
+
     // tulis ZIP ke lokasi pilihan, hasilnya jumlah foto yang ikut tersimpan
     suspend fun backup(context: Context, db: AppDatabase, target: Uri): Int = withContext(Dispatchers.IO) {
         // pindahkan isi kas.db-wal ke kas.db supaya satu file sudah lengkap
