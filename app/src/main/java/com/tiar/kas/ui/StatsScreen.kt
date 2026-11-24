@@ -100,14 +100,6 @@ fun StatsScreen(db: AppDatabase, onBack: () -> Unit) {
     ) {
         item {
         	ScreenHeader("Statistik")
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Statistik", style = MaterialTheme.typography.titleLarge)
-                TextButton(onClick = onBack) { Text("Kembali") }
-            }
         }
 
         item {

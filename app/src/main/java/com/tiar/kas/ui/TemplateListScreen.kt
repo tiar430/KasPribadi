@@ -53,14 +53,7 @@ fun TemplateListScreen(db: AppDatabase, onBack: () -> Unit) {
         contentPadding = PaddingValues(16.dp)
     ) {
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ScreenHeader("Template", onBack = onBack)
-                TextButton(onClick = onBack) { Text("Kembali") }
-            }
+            ScreenHeader("Template", onBack = onBack)
             Text(
                 "Buat template dari form transaksi lewat tombol Simpan sebagai template",
                 style = MaterialTheme.typography.bodySmall

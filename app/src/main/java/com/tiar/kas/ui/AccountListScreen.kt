@@ -53,17 +53,7 @@ fun AccountListScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // judul di kiri, tombol kembali di kanan
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,   // dorong isi ke dua ujung
-                verticalAlignment = Alignment.CenterVertically      // sejajarkan tinggi teks dan tombol
-            ) {
-            	ScreenHeader("Akun")
-                Text("Kelola akun", style = MaterialTheme.typography.titleLarge)
-                TextButton(onClick = onBack) { Text("Kembali") }
-            }
-
+        	ScreenHeader("Akun")
             AccountGroup.entries.forEach { group ->
                 val inGroup = balances.filter { it.accountGroup == group }
                 if (inGroup.isNotEmpty()) {                          // grup tanpa akun tidak ditampilkan

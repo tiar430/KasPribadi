@@ -53,14 +53,7 @@ fun SecurityScreen(onBack: () -> Unit) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ScreenHeader("Keamanan", onBack = onBack)
-            TextButton(onClick = onBack) { Text("Kembali") }
-        }
+        ScreenHeader("Keamanan", onBack = onBack)
 
         Text(
             if (hasPin) "PIN aktif. Aplikasi terkunci saat dibuka dan setelah 30 detik di latar belakang"

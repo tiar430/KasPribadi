@@ -53,14 +53,7 @@ fun RecurringListScreen(db: AppDatabase, onBack: () -> Unit) {
 		contentPadding = PaddingValues(16.dp)
 	) {
 		item {
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				ScreenHeader("Transaksi berulang", onBack = onBack)
-				TextButton(onClick = onBack) { Text("Kembali") }
-			}
+			ScreenHeader("Transaksi berulang", onBack = onBack)
 			Text(
 				"Buat aturan baru dari form transaksi lewat pilihan Ulangi",
 				style = MaterialTheme.typography.bodySmall

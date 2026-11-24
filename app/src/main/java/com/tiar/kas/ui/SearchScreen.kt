@@ -78,14 +78,7 @@ fun SearchScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ScreenHeader("Cari transaksi", onBack = onBack)
-                TextButton(onClick = onBack) { Text("Kembali") }
-            }
+            ScreenHeader("Cari transaksi", onBack = onBack)
         }
 
         item {

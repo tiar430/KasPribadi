@@ -108,14 +108,7 @@ fun BackupScreen(db: AppDatabase, onBack: () -> Unit) {
 			.padding(16.dp),
 		verticalArrangement = Arrangement.spacedBy(12.dp)
 	) {
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			horizontalArrangement = Arrangement.SpaceBetween,
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			ScreenHeader("Backup dan ekspor", onBack = onBack)
-			TextButton(onClick = onBack) { Text("Kembali") }
-		}
+		ScreenHeader("Backup dan ekspor", onBack = onBack)
 
 		Text(
 			if (lastBackup > 0) "Backup terakhir ${formatDateOnly(lastBackup)} ${formatTime(lastBackup)}"

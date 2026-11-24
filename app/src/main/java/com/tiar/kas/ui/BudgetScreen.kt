@@ -83,14 +83,7 @@ fun BudgetScreen(db: AppDatabase, onBack: () -> Unit) {
         contentPadding = PaddingValues(16.dp)
     ) {
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ScreenHeader("Budget bulanan", onBack = onBack)
-                TextButton(onClick = onBack) { Text("Kembali") }
-            }
+        	ScreenHeader("Budget bulanan", onBack = onBack)
         }
 
         item {
