@@ -113,7 +113,7 @@ fun BackupScreen(db: AppDatabase, onBack: () -> Unit) {
 			horizontalArrangement = Arrangement.SpaceBetween,
 			verticalAlignment = Alignment.CenterVertically
 		) {
-			Text("Backup", style = MaterialTheme.typography.titleLarge)
+			ScreenHeader("Backup dan ekspor", onBack = onBack)
 			TextButton(onClick = onBack) { Text("Kembali") }
 		}
 

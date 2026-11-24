@@ -156,13 +156,13 @@ fun TransactionFormScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-        	when {
+        ScreenHeader(
+        	title = when {
         		editId != null -> "Edit transaksi"
         		payCardId != null -> "Bayar tagihan"
         		else -> "Transaksi baru"
         	},
-        	style = MaterialTheme.typography.titleLarge
+        	onBack = onClose
         )
 
         if (editId == null && payCardId == null && templates.isNotEmpty()) {

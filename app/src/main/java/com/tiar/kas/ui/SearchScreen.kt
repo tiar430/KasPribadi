@@ -74,7 +74,8 @@ fun SearchScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp)
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             Row(
@@ -82,7 +83,7 @@ fun SearchScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Cari transaksi", style = MaterialTheme.typography.titleLarge)
+                ScreenHeader("Cari transaksi", onBack = onBack)
                 TextButton(onClick = onBack) { Text("Kembali") }
             }
         }
@@ -171,10 +172,7 @@ fun SearchScreen(
 
         grouped.forEach { (date, dayRows) ->
             item(key = "day-$date") {
-                DayHeader(date, dayRows, incomeColor, expenseColor)
-            }
-            items(dayRows, key = { it.id }) { r ->
-                TransactionItem(r, incomeColor, expenseColor, onClick = { onRowClick(r.id) })
+            	DayCard(date, dayRows, incomeColor, expenseColor, onRowClick)
             }
         }
     }

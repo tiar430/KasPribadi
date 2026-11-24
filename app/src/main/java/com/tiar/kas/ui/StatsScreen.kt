@@ -99,6 +99,7 @@ fun StatsScreen(db: AppDatabase, onBack: () -> Unit) {
         contentPadding = PaddingValues(16.dp)
     ) {
         item {
+        	ScreenHeader("Statistik")
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

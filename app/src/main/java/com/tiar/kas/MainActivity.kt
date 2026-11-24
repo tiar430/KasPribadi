@@ -1,15 +1,22 @@
 package com.tiar.kas
 
+import android.graphics.Color
 import android.os.Bundle
 import android.os.SystemClock
 import android.widget.Toast
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.tiar.kas.data.AppDatabase
 import com.tiar.kas.data.processRecurring
@@ -17,6 +24,7 @@ import com.tiar.kas.data.seedIfEmpty
 import com.tiar.kas.ui.AppNavigation
 import com.tiar.kas.ui.CrashReportDialog
 import com.tiar.kas.ui.LockScreen
+import com.tiar.kas.ui.theme.KasTheme
 import com.tiar.kas.util.PhotoStore
 import com.tiar.kas.util.PinStore
 import kotlinx.coroutines.launch
@@ -33,6 +41,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        enableEdgeToEdge(
+        	statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
+        	navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+        )
+
         db = AppDatabase.get(this)
         pinStore = PinStore(this)
 
@@ -48,19 +61,23 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            MaterialTheme {
-                Box {
-                    AppNavigation(db = db)
-                    CrashReportDialog()
-                    if (locked) {
-                        // digambar paling akhir, jadi berada paling atas
-                        LockScreen(
-                            onCheck = { pin -> pinStore.check(pin) },
-                            onUnlocked = { locked = false }
-                        )
-                    }
-                }
-            }
+        	KasTheme {
+        		Surface(
+        			modifier = Modifier.fillMaxSize(),
+        			color = MaterialTheme.colorScheme.background
+        		) {
+        			Box(modifier = Modifier.safeDrawingPadding()) {
+        				AppNavigation(db = db)
+        				CrashReportDialog()
+        				if (locked) {
+        					LockScreen(
+        						onCheck = { pin -> pinStore.check(pin) },
+        						onUnlocked = { locked = false }
+        					)
+        				}
+        			}
+        		}
+        	}
         }
     }
 

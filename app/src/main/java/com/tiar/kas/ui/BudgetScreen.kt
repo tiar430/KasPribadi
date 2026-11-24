@@ -88,7 +88,7 @@ fun BudgetScreen(db: AppDatabase, onBack: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Budget bulanan", style = MaterialTheme.typography.titleLarge)
+                ScreenHeader("Budget bulanan", onBack = onBack)
                 TextButton(onClick = onBack) { Text("Kembali") }
             }
         }

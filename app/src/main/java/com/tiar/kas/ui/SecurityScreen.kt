@@ -58,7 +58,7 @@ fun SecurityScreen(onBack: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Keamanan", style = MaterialTheme.typography.titleLarge)
+            ScreenHeader("Keamanan", onBack = onBack)
             TextButton(onClick = onBack) { Text("Kembali") }
         }
 

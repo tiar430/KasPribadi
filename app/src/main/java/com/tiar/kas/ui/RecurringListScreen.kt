@@ -58,7 +58,7 @@ fun RecurringListScreen(db: AppDatabase, onBack: () -> Unit) {
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {
-				Text("Transaksi berulang", style = MaterialTheme.typography.titleLarge)
+				ScreenHeader("Transaksi berulang", onBack = onBack)
 				TextButton(onClick = onBack) { Text("Kembali") }
 			}
 			Text(

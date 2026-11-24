@@ -59,6 +59,7 @@ fun AccountListScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,   // dorong isi ke dua ujung
                 verticalAlignment = Alignment.CenterVertically      // sejajarkan tinggi teks dan tombol
             ) {
+            	ScreenHeader("Akun")
                 Text("Kelola akun", style = MaterialTheme.typography.titleLarge)
                 TextButton(onClick = onBack) { Text("Kembali") }
             }

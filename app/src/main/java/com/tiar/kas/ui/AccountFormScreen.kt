@@ -78,9 +78,9 @@ fun AccountFormScreen(db: AppDatabase, editId: Long?, onClose: () -> Unit) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            if (editId == null) "Akun baru" else "Edit akun",
-            style = MaterialTheme.typography.titleLarge
+        ScreenHeader(
+        	if (editId == null) "Akun baru" else "Edit akun",
+        	onBack = onClose
         )
 
         OutlinedTextField(

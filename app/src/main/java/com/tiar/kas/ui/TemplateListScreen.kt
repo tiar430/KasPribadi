@@ -58,7 +58,7 @@ fun TemplateListScreen(db: AppDatabase, onBack: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Template", style = MaterialTheme.typography.titleLarge)
+                ScreenHeader("Template", onBack = onBack)
                 TextButton(onClick = onBack) { Text("Kembali") }
             }
             Text(
