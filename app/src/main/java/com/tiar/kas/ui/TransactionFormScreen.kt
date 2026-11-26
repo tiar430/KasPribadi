@@ -12,22 +12,45 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.BookmarkAdd
+import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.Repeat
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -39,6 +62,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
@@ -61,6 +86,8 @@ import com.tiar.kas.util.PhotoStore
 import java.io.File
 import java.util.Calendar
 import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalMaterial3Api::class)
 
 @Composable
 fun TransactionFormScreen(
@@ -149,266 +176,309 @@ fun TransactionFormScreen(
     	cameraTemp = null
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        ScreenHeader(
-        	title = when {
-        		editId != null -> "Edit transaksi"
-        		payCardId != null -> "Bayar tagihan"
-        		else -> "Transaksi baru"
-        	},
-        	onBack = onClose
-        )
+    val amountColor = when (type) {
+    	TransactionType.PEMASUKAN -> MaterialTheme.colorScheme.primary
+    	TransactionType.PENGELUARAN -> MaterialTheme.colorScheme.error
+    	TransactionType.TRANSFER -> MaterialTheme.colorScheme.onSurface
+    }
 
-        if (editId == null && payCardId == null && templates.isNotEmpty()) {
-        	Text("Pakai template", style = MaterialTheme.typography.labelLarge)
-        	Row(
-        		modifier = Modifier
-        			.fillMaxWidth()
-        			.horizontalScroll(rememberScrollState()),
-        		horizontalArrangement = Arrangement.spacedBy(8.dp)
-        	) {
-        		templates.forEach { t ->
-        			AssistChip(
-        				onClick = {
-        					type = t.type
-        					amountText = if (t.amount > 0) t.amount.toString() else ""
-        					accountId = t.accountId
-        					toAccountId = t.toAccountId
-        					categoryId = t.categoryId
-        					note = t.note
-        					error = null
-        				},
-        				label = { Text(t.name) }
-        			)
-        		}
-        	}
-        }
+    fun openDatePicker() {
+    	val cal = Calendar.getInstance().apply { timeInMillis = dateMillis }
+    	DatePickerDialog(
+    		context,
+    		{ _, year, month, day ->
+    			cal.set(year, month, day)
+    			dateMillis = cal.timeInMillis
+    		},
+    		cal.get(Calendar.YEAR),
+    		cal.get(Calendar.MONTH),
+    		cal.get(Calendar.DAY_OF_MONTH)
+    	).show()
+    }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TransactionType.entries.forEach { t ->
-                FilterChip(
-                    selected = type == t,
-                    onClick = {
-                        if (type != t) categoryId = null   // reset kategori hanya kalau jenis benar-benar berubah
-                        type = t
-                    },
-                    label = { Text(t.name.lowercase().replaceFirstChar { it.uppercase() }) }
-                )
-            }
-        }
+    fun openTimePicker() {
+    	val cal = Calendar.getInstance().apply { timeInMillis = dateMillis }
+    	val listener = TimePickerDialog.OnTimeSetListener { _, hour, minute ->
+    		cal.set(Calendar.HOUR_OF_DAY, hour)
+    		cal.set(Calendar.MINUTE, minute)
+    		cal.set(Calendar.SECOND, 0)
+    		cal.set(Calendar.MILLISECOND, 0)
+    		dateMillis = cal.timeInMillis
+    	}
+    	TimePickerDialog(
+    		context,
+    		listener,
+    		cal.get(Calendar.HOUR_OF_DAY),
+    		cal.get(Calendar.MINUTE),
+    		true
+    	).show()
+    }
 
-        // tanggal dan jam berdampingan
-        Row(
-        	modifier = Modifier.fillMaxWidth(),
-        	horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-        	OutlinedButton(
-        		onClick = {
-        			val cal = Calendar.getInstance().apply { timeInMillis = dateMillis }
-        			DatePickerDialog(
-        				context,
-        				{ _, year, month, day ->
-        					cal.set(year, month, day)
-        					dateMillis = cal.timeInMillis
-        				},
-        				cal.get(Calendar.YEAR),
-        				cal.get(Calendar.MONTH),
-        				cal.get(Calendar.DAY_OF_MONTH)
-        			).show()
-        		},
-        		modifier = Modifier.weight(1f)
-        	) {
-        		Text(formatDateOnly(dateMillis))
-        	}
+    fun save() {
+		val amount = amountText.toLongOrNull() ?: 0L
+		val from = accountId
+		val to = toAccountId
+		val cat = categoryId
 
-        	OutlinedButton(
-        		onClick = {
-        			val cal = Calendar.getInstance().apply { timeInMillis = dateMillis }
-        			val listener = TimePickerDialog.OnTimeSetListener { _, hour, minute ->
-        				cal.set(Calendar.HOUR_OF_DAY, hour)
-        				cal.set(Calendar.MINUTE, minute)
-        				cal.set(Calendar.SECOND, 0)
-        				cal.set(Calendar.MILLISECOND, 0)
-        				dateMillis = cal.timeInMillis
-        			}
-        			
-        			TimePickerDialog(
-        				context,
-        				listener,
-        				cal.get(Calendar.HOUR_OF_DAY),
-        				cal.get(Calendar.MINUTE),
-        				true
-        			).show()
-        		}
-        	) {
-        		Text(formatTime(dateMillis))
-        	}
-        }
+		error = when {
+			amount <= 0 -> "Nominal harus lebih dari 0"
+			from == null -> "Pilih akun"
+			type == TransactionType.TRANSFER && to == null -> "Pilih akun tujuan"
+			type == TransactionType.TRANSFER && to == from -> "Akun asal dan tujuan tidak boleh sama"
+			type != TransactionType.TRANSFER && cat == null -> "Pilih kategori"
+			else -> null
+		}
 
-        OutlinedTextField(
-            value = amountText,
-            onValueChange = { input -> amountText = input.filter { it.isDigit() }.take(13) },
-            label = { Text("Nominal") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            singleLine = true,
-            supportingText = { amountText.toLongOrNull()?.let { Text(formatRupiah(it)) } },
-            modifier = Modifier.fillMaxWidth()
-        )
+		if (error == null && from != null) {
+			val freq = repeat
+			scope.launch {
+				if (editId == null && freq != null) {
+					db.recurringDao().insert(
+						RecurringRule(
+							type = type,
+                    		amount = amount,
+                    		accountId = from,
+                    		toAccountId = if (type == TransactionType.TRANSFER) to else null,
+                    		categoryId = if (type == TransactionType.TRANSFER) null else cat,
+                    		note = note.trim(),
+                    		frequency = freq,
+                    		startDate = dateMillis
+                    	)
+                    )
+                    val created = processRecurring(db)
+                    Toast.makeText(context, "Aturan berulang dibuat, $created transaksi dicatat", Toast.LENGTH_SHORT).show()
+				} else {
+                    val tx = MoneyTransaction(
+                    	id = editId ?: 0,
+                    	date = dateMillis,
+                    	type = type,
+                    	amount = amount,
+                    	accountId = from,
+                    	toAccountId = if (type == TransactionType.TRANSFER) to else null,
+                    	categoryId = if (type == TransactionType.TRANSFER) null else cat,
+                    	note = note.trim(),
+                    	photoPath = photoName
+                    )
+                    if (editId == null) dao.insert(tx) else dao.update(tx)
+                    if (originalPhoto != null && originalPhoto != photoName) PhotoStore.delete(context, originalPhoto)
+				}
+				onClose()
+			}
+		}
+	}
 
-        if (editId == null) {
-        	PickerField(
-        		label = "Ulangi",
-        		selectedText = repeat?.label() ?: "Tidak berulang",
-        		options = listOf(-1L to "Tidak berulang") + Frequency.entries.map { it.ordinal.toLong() to it.label() },
-        		onSelect = { id -> repeat = if (id == -1L) null else Frequency.entries[id.toInt()] }
-        	)
-        	repeat?.let { freq ->
-        		Text(
-        			"Mulai ${formatDateOnly(dateMillis)}, lalu ${freq.label().lowercase()}. Tanggal yang belum tiba dicatat saat jatuh tempo",
-        			style = MaterialTheme.typography.bodySmall
-        		)
-        	}
-        }
+	Column(
+		modifier = Modifier
+			.fillMaxSize()
+			.verticalScroll(rememberScrollState())
+			.padding(horizontal = 16.dp, vertical = 8.dp),
+		verticalArrangement = Arrangement.spacedBy(16.dp)
+	) {
+		ScreenHeader(
+			title = when {
+				editId != null -> "Edit Transaksi"
+				payCardId != null -> "Bayar Tagihan"
+				else -> "Transaksi Baru"
+			},
+			onBack = onClose
+		)
 
-        PickerField(
-            label = if (type == TransactionType.TRANSFER) "Dari akun" else "Akun",
-            selectedText = accounts.firstOrNull { it.id == accountId }?.name,
-            options = accounts.map { it.id to it.name },
-            onSelect = { accountId = it }
-        )
+		if (editId == null && payCardId == null && templates.isNotEmpty()) {
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.horizontalScroll(rememberScrollState()),
+				horizontalArrangement = Arrangement.spacedBy(8.dp)
+			) {
+				templates.forEach { t ->
+					AssistChip(
+						onClick = {
+							type = t.type
+							amountText = if (t.amount > 0) t.amount.toString() else ""
+							accountId = t.accountId
+							toAccountId = t.toAccountId
+							categoryId = t.categoryId
+							note = t.note
+							error = null
+						},
+						label = { Text(t.name) }
+					)
+				}
+			}
+		}
 
-        if (type == TransactionType.TRANSFER) {
-            PickerField(
-                label = "Ke akun",
-                selectedText = accounts.firstOrNull { it.id == toAccountId }?.name,
-                options = accounts.filter { it.id != accountId }.map { it.id to it.name },
-                onSelect = { toAccountId = it }
-            )
-        } else {
-            PickerField(
-                label = "Kategori",
-                selectedText = categoryOptions.firstOrNull { it.first == categoryId }?.second,
-                options = categoryOptions,
-                onSelect = { categoryId = it }
-            )
-        }
+		// Tiga tombol menyatu, hanya satu yang aktif
+		val types = TransactionType.entries
+		SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+			types.forEachIndexed { index, t ->
+				SegmentedButton(
+					selected = type == t,
+					onClick = {
+						if (type != t) categoryId = null
+						type = t
+					},
+					// sudut bulat hanya di ujung kiri tombol pertama, dan ujung kanan tombol terakhir
+					shape = SegmentedButtonDefaults.itemShape(index = index, count = types.size),
+					label = { Text(t.name.lowercase().replaceFirstChar { it.uppercase() }) }
+				)
+			}
+		}
 
-        OutlinedTextField(
-            value = note,
-            onValueChange = { note = it },
-            label = { Text("Catatan") },
-            modifier = Modifier.fillMaxWidth()
-        )
+		AmountInput(value = amountText, onValueChange = { amountText = it }, color = amountColor)
 
-		Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+		FormCard {
+			Row(modifier = Modifier.fillMaxWidth()) {
+				FormClickRow(
+					icon = Icons.Outlined.CalendarToday,
+					label = "Tanggal",
+					value = formatDateOnly(dateMillis),
+					onClick = { openDatePicker() },
+					modifier = Modifier.weight(1f)
+				)
+			}
+			FormDivider()
+			PickerField(
+				label = if (type == TransactionType.TRANSFER) "Dari Akun" else "Akun",
+				selectedText = accounts.firstOrNull { it.id == accountId }?.name,
+				options = accounts.map { it.id to it.name },
+				onSelect = { accountId = it },
+				icon = Icons.Outlined.AccountBalanceWallet,
+				bordered = false
+			)
+			FormDivider()
+			if (type == TransactionType.TRANSFER) {
+				PickerField(
+					label = "Ke Akun",
+					selectedText = accounts.firstOrNull { it.id == toAccountId }?.name,
+					options = accounts.filter { it.id != accountId }.map { it.id to it.name },
+					onSelect = { toAccountId = it },
+					icon = Icons.Outlined.SwapHoriz,
+					bordered = false
+				)
+			} else {
+				PickerField(
+					label = "Kategori",
+					selectedText = categoryOptions.firstOrNull { it.first == categoryId }?.second,
+					options = categoryOptions,
+					onSelect = { categoryId = it },
+					icon = Icons.Outlined.Category,
+					bordered = false
+				)
+			}
+			if (editId == null) {
+				FormDivider()
+				PickerField(
+					label = "Ulangi",
+					selectedText = repeat?.label() ?: "Tidak berulang",
+					options = listOf(-1L to "Tidak berulang") + Frequency.entries.map { it.ordinal.toLong() to it.label() },
+					onSelect = { id -> repeat = if (id == -1L) null else Frequency.entries[id.toInt()] },
+					icon = Icons.Outlined.Repeat,
+					bordered = false
+				)
+				repeat?.let { freq ->
+					Text(
+						"Mulai ${formatDateOnly(dateMillis)}, lalu ${freq.label().lowercase()}",
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+						modifier = Modifier.padding(start = 48.dp, end = 12.dp, bottom = 8.dp)
+					)
+				}
+			}
+			FormDivider()
+			// Kolom isian tanpa kotak dan tanpa garis, menyatu dengan kartu
+			TextField(
+				value = note,
+				onValueChange = { note = it },
+				placeholder = { Text("Catatan") },
+				leadingIcon = { Icon(Icons.Outlined.EditNote, contentDescription = null) },
+				colors = TextFieldDefaults.colors(
+					focusedContainerColor = Color.Transparent,
+					unfocusedContainerColor = Color.Transparent,
+					focusedIndicatorColor = Color.Transparent,
+					unfocusedIndicatorColor = Color.Transparent
+				),
+				modifier = Modifier.fillMaxWidth()
+			)
+		}
+
+		FormCard {
 			val name = photoName
 			if (name != null) {
 				Row(
-					horizontalArrangement = Arrangement.spacedBy(8.dp),
+					modifier = Modifier.padding(12.dp),
+					horizontalArrangement = Arrangement.spacedBy(12.dp),
 					verticalAlignment = Alignment.CenterVertically
 				) {
 					PhotoThumbnail(
 						name = name,
 						modifier = Modifier
-							.size(72.dp)
+							.size(64.dp)
+							.clip(MaterialTheme.shapes.small)
 							.clickable { showPhoto = true }
 					)
-					TextButton(onClick = { photoName = null }) { Text("Hapus foto") }
+					Column(modifier = Modifier.weight(1f)) {
+						Text("Foto Struk", style = MaterialTheme.typography.titleSmall)
+						Text("Ketuk foto untuk zoom gambar", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+					}
+					IconButton(onClick = { photoName = null }) {
+						Icon(Icons.Outlined.Delete, contentDescription = "Hapus Foto", tint = MaterialTheme.colorScheme.error)
+					}
 				}
+				FormDivider()
 			}
-			Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-				OutlinedButton(onClick = {
-					photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-				}) { Text("Galeri") }
-				OutlinedButton(onClick = {
-					val (tempName, uri) = PhotoStore.newCameraTarget(context)
-					cameraTemp = tempName
-					camera.launch(uri)
-				}) { Text("Kamera") }
+			Row(modifier = Modifier.fillMaxWidth()) {
+				TextButton(
+					onClick = { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+					modifier = Modifier.weight(1f)
+				) {
+					Icon(Icons.Outlined.PhotoLibrary, contentDescription = null)
+					Spacer(modifier = Modifier.width(8.dp))
+					Text("Galeri")
+				}
+				TextButton(
+					onClick = {
+						val (tempName, uri) = PhotoStore.newCameraTarget(context)
+						cameraTemp = tempName
+						camera.launch(uri)
+					},
+					modifier = Modifier.weight(1f)
+				) {
+					Icon(Icons.Outlined.PhotoCamera, contentDescription = null)
+					Spacer(modifier = Modifier.width(8.dp))
+					Text("Kamera")
+				}
 			}
 		}
 
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+		error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {        	
-            OutlinedButton(onClick = onClose) { Text("Batal") }
+		Button(
+			onClick = { save() },
+			shape = MaterialTheme.shapes.large,
+			modifier = Modifier.fillMaxWidth().height(52.dp)
+		) {
+			Text("Simpan", style = MaterialTheme.typography.titleSmall)
+		}
 
-            Button(onClick = {
-                val amount = amountText.toLongOrNull() ?: 0L
-                val from = accountId
-                val to = toAccountId
-                val cat = categoryId
-
-                error = when {
-                    amount <= 0 -> "Nominal harus lebih dari 0"
-                    from == null -> "Pilih akun"
-                    type == TransactionType.TRANSFER && to == null -> "Pilih akun tujuan"
-                    type == TransactionType.TRANSFER && to == from -> "Akun asal dan tujuan tidak boleh sama"
-                    type != TransactionType.TRANSFER && cat == null -> "Pilih kategori"
-                    else -> null
-                }
-
-                if (error == null && from != null) {
-                	val freq = repeat
-                    scope.launch {
-                    	if (editId == null && freq != null) {
-                    		db.recurringDao().insert(
-                    			RecurringRule(
-                    				type = type,
-                    				amount = amount,
-                    				accountId = from,
-                    				toAccountId = if (type == TransactionType.TRANSFER) to else null,
-                    				categoryId = if (type == TransactionType.TRANSFER) null else cat,
-                    				note = note.trim(),
-                    				frequency = freq,
-                    				startDate = dateMillis
-                    			)
-                    		)
-                    		val created = processRecurring(db)
-                    		Toast.makeText(context, "Aturan berulang dibuat, $created transaksi dicatat", Toast.LENGTH_SHORT).show()
-                    	} else {
-                    		val tx = MoneyTransaction(
-                    			id = editId ?: 0,
-                    			date = dateMillis,
-                    			type = type,
-                    			amount = amount,
-                    			accountId = from,
-                    			toAccountId = if (type == TransactionType.TRANSFER) to else null,
-                    			categoryId = if (type == TransactionType.TRANSFER) null else cat,
-                    			note = note.trim(),
-                    			photoPath = photoName
-                    		)
-                    		if (editId == null) dao.insert(tx) else dao.update(tx)
-                    		if (originalPhoto != null && originalPhoto != photoName) PhotoStore.delete(context, originalPhoto)
-                    	}
-                    	onClose()
-                    }
-                }
-            }) {
-                Text("Simpan")
-            }
-
-            // tombol hapus hanya muncul saat mode edit
-            if (editId != null) {
-                TextButton(onClick = { showDeleteDialog = true }) {
-                    Text("Hapus", color = MaterialTheme.colorScheme.error)
-                }
-            }
-        }
-
-        TextButton(onClick = {
-        	templateError = null
-        	showTemplateDialog = true
-        }) {
-        	Text("Simpan sebagai template")
-        }        
-    }
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			horizontalArrangement = Arrangement.SpaceBetween
+		) {
+			TextButton(onClick = {
+				templateError = null
+				showTemplateDialog = true
+			}) {
+				Icon(Icons.Outlined.BookmarkAdd, contentDescription = null)
+				Spacer(modifier = Modifier.width(6.dp))
+				Text("Simpan sebagai template")
+			}
+			if (editId != null) {
+				TextButton(onClick = { showDeleteDialog = true }) {
+					Text("Hapus", color = MaterialTheme.colorScheme.error)
+				}
+			}
+		}
+	}
 
     // dialog konfirmasi supaya transaksi tidak terhapus karena salah ketuk
     if (showDeleteDialog && editId != null) {
