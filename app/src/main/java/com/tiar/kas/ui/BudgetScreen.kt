@@ -1,23 +1,29 @@
 package com.tiar.kas.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -30,6 +36,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -37,15 +44,15 @@ import com.tiar.kas.data.AppDatabase
 import com.tiar.kas.data.Budget
 import com.tiar.kas.data.CategoryType
 import com.tiar.kas.data.TransactionType
+import com.tiar.kas.ui.theme.Tabular
 import com.tiar.kas.util.endMillis
 import com.tiar.kas.util.formatPercent
 import com.tiar.kas.util.formatRupiah
 import com.tiar.kas.util.startMillis
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlin.math.abs
 import kotlinx.coroutines.launch
-
-private val warningColor = Color(0xFFF9A825)     // kuning tua, terbaca di latar putih
 
 @Composable
 fun BudgetScreen(db: AppDatabase, onBack: () -> Unit) {
@@ -64,14 +71,12 @@ fun BudgetScreen(db: AppDatabase, onBack: () -> Unit) {
 
     val mainExpense = categories.filter { it.type == CategoryType.PENGELUARAN && it.parentId == null }
     val budgetMap = budgets.associate { it.categoryId to it.amount }
-    val spentMap = spentTotals.associate { it.categoryId to it.total }   // peta id kategori ke total terpakai
+    val spentMap = spentTotals.associate { it.categoryId to it.total }
 
-    // ringkasan hanya menghitung kategori yang punya budget
     val totalBudget = budgets.sumOf { it.amount }
-    val totalSpentBudgeted = budgets.sumOf { spentMap[it.categoryId] ?: 0L }
-    val totalRemaining = totalBudget - totalSpentBudgeted
+    val totalSpent = budgets.sumOf { spentMap[it.categoryId] ?: 0L }
+    val totalRemaining = totalBudget - totalSpent
 
-    // sisa hari termasuk hari ini, hanya bermakna untuk bulan berjalan
     val isCurrentMonth = month == YearMonth.now()
     val daysLeft = if (isCurrentMonth) month.lengthOfMonth() - LocalDate.now().dayOfMonth + 1 else 0
 
@@ -80,67 +85,50 @@ fun BudgetScreen(db: AppDatabase, onBack: () -> Unit) {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp)
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item {
-        	ScreenHeader("Budget bulanan", onBack = onBack)
-        }
+        item(key = "header") { ScreenHeader("Budget bulanan", onBack = onBack) }
 
-        item {
-            MonthSwitcher(month = month, onMonthChange = { month = it })
-        }
+        item(key = "month") { MonthSwitcher(month = month, onMonthChange = { month = it }) }
 
-        // ringkasan semua budget
-        if (totalBudget > 0) {
-            item {
-                Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                    Text("Total budget", style = MaterialTheme.typography.titleMedium)
-                    BudgetProgress(spent = totalSpentBudgeted, budget = totalBudget)
-                    if (isCurrentMonth && totalRemaining > 0 && daysLeft > 0) {
-                        Text(
-                            "Bisa dipakai sekitar ${formatRupiah(totalRemaining / daysLeft)} per hari sampai akhir bulan",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-                HorizontalDivider(thickness = 2.dp)
-            }
-        } else {
-            item {
-                Text(
-                    "Belum ada budget. Ketuk kategori untuk mengatur",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(vertical = 8.dp)
+        item(key = "summary") {
+            if (totalBudget > 0) {
+                BudgetSummaryCard(
+                    remaining = totalRemaining,
+                    budget = totalBudget,
+                    spent = totalSpent,
+                    perDay = if (isCurrentMonth && totalRemaining > 0 && daysLeft > 0) totalRemaining / daysLeft else null
                 )
-                HorizontalDivider()
-            }
-        }
-
-        items(mainExpense, key = { it.id }) { cat ->
-            val budget = budgetMap[cat.id]
-            val spent = spentMap[cat.id] ?: 0L
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        editingId = cat.id
-                        inputText = budget?.toString() ?: ""
-                    }
-                    .padding(vertical = 12.dp)
-            ) {
-                Text(cat.name, style = MaterialTheme.typography.titleSmall)
-                if (budget != null) {
-                    BudgetProgress(spent = spent, budget = budget)
-                } else {
-                    // kategori tanpa budget tetap menampilkan pengeluarannya
+            } else {
+                FormCard {
                     Text(
-                        "Belum diatur, terpakai ${formatRupiah(spent)}",
-                        style = MaterialTheme.typography.bodySmall
+                        "Belum ada budget. Ketuk kategori di bawah untuk mengatur",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(16.dp)
                     )
                 }
             }
-            HorizontalDivider()
+        }
+
+        item(key = "categories") {
+            FormCard {
+                mainExpense.forEachIndexed { index, cat ->
+                    if (index > 0) {
+                        HorizontalDivider(modifier = Modifier.padding(start = 68.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    }
+                    BudgetRow(
+                        name = cat.name,
+                        budget = budgetMap[cat.id],
+                        spent = spentMap[cat.id] ?: 0L,
+                        onClick = {
+                            editingId = cat.id
+                            inputText = budgetMap[cat.id]?.toString() ?: ""
+                        }
+                    )
+                }
+            }
         }
     }
 
@@ -159,11 +147,14 @@ fun BudgetScreen(db: AppDatabase, onBack: () -> Unit) {
                         label = { Text("Nominal per bulan") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
-                        supportingText = { inputText.toLongOrNull()?.let { Text(formatRupiah(it)) } }
+                        visualTransformation = ThousandsTransformation(prefix = "Rp "),   // titik ribuan otomatis
+                        shape = MaterialTheme.shapes.small
                     )
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         "Kosongkan lalu simpan untuk menghapus budget",
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
@@ -171,11 +162,8 @@ fun BudgetScreen(db: AppDatabase, onBack: () -> Unit) {
                 TextButton(onClick = {
                     val amount = inputText.toLongOrNull() ?: 0L
                     scope.launch {
-                        if (amount > 0) {
-                            budgetDao.upsert(Budget(categoryId = editId, amount = amount))
-                        } else {
-                            budgetDao.deleteByCategory(editId)
-                        }
+                        if (amount > 0) budgetDao.upsert(Budget(categoryId = editId, amount = amount))
+                        else budgetDao.deleteByCategory(editId)
                         editingId = null
                     }
                 }) { Text("Simpan") }
@@ -187,46 +175,123 @@ fun BudgetScreen(db: AppDatabase, onBack: () -> Unit) {
     }
 }
 
-// bar progres beserta teks terpakai, persen, dan sisa atau kelebihan
+// warna bar berdasarkan persentase terpakai
 @Composable
-private fun BudgetProgress(spent: Long, budget: Long) {
-    val ratio = spent.toFloat() / budget                  // bisa lebih dari 1 kalau melewati budget
-    val barColor = when {
-        ratio > 1f -> MaterialTheme.colorScheme.error      // lewat budget
-        ratio >= 0.8f -> warningColor                      // hampir habis
-        else -> MaterialTheme.colorScheme.primary          // aman
-    }
-    val remaining = budget - spent
+private fun ratioColor(ratio: Float): Color = when {
+    ratio > 1f -> MaterialTheme.colorScheme.error
+    ratio >= 0.8f -> MaterialTheme.colorScheme.tertiary
+    else -> MaterialTheme.colorScheme.primary
+}
 
-    Spacer(modifier = Modifier.height(6.dp))
-    LinearProgressIndicator(
-        progress = { ratio.coerceIn(0f, 1f) },             // bar dibatasi 0 sampai penuh
-        color = barColor,
-        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+@Composable
+private fun BudgetSummaryCard(remaining: Long, budget: Long, spent: Long, perDay: Long?) {
+    val ratio = spent.toFloat() / budget
+    val onCard = MaterialTheme.colorScheme.onPrimaryContainer
+
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = onCard,
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(if (remaining >= 0) "Sisa budget" else "Lewat budget", style = MaterialTheme.typography.labelLarge)
+            Text(
+                formatRupiah(abs(remaining)),
+                style = MaterialTheme.typography.headlineMedium.merge(Tabular),
+                color = if (remaining >= 0) onCard else MaterialTheme.colorScheme.error
+            )
+            Text(
+                "Terpakai ${formatRupiah(spent)} dari ${formatRupiah(budget)}",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            BudgetBar(ratio = ratio, color = ratioColor(ratio), track = onCard.copy(alpha = 0.12f))
+            if (perDay != null) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    "Sekitar ${formatRupiah(perDay)} per hari sampai akhir bulan",
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BudgetRow(name: String, budget: Long?, spent: Long, onClick: () -> Unit) {
+    val visual = categoryVisual(name, TransactionType.PENGELUARAN)
+    val ratio = if (budget != null && budget > 0) spent.toFloat() / budget else 0f
+    val color = ratioColor(ratio)
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(8.dp)
-    )
-    Spacer(modifier = Modifier.height(4.dp))
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        Text(
-            "${formatRupiah(spent)} dari ${formatRupiah(budget)}",
-            style = MaterialTheme.typography.bodySmall
-        )
-        Text(
-            formatPercent(ratio * 100.0),
-            style = MaterialTheme.typography.bodySmall,
-            color = barColor
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(visual.container, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(visual.icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = visual.content)
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(name, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    if (budget == null) "Belum diatur, terpakai ${formatRupiah(spent)}"
+                    else "${formatRupiah(spent)} dari ${formatRupiah(budget)}",
+                    style = MaterialTheme.typography.bodySmall.merge(Tabular),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (budget == null) {
+                Text("Atur", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            } else {
+                Text(formatPercent(ratio * 100.0), style = MaterialTheme.typography.labelLarge.merge(Tabular), color = color)
+            }
+        }
+
+        if (budget != null) {
+            Spacer(modifier = Modifier.height(10.dp))
+            // bar menjorok sejajar nama kategori
+            Box(modifier = Modifier.padding(start = 52.dp)) {
+                BudgetBar(ratio = ratio, color = color)
+            }
+            if (spent > budget) {
+                Text(
+                    "Lewat ${formatRupiah(spent - budget)}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(start = 52.dp, top = 6.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BudgetBar(
+    ratio: Float,
+    color: Color,
+    track: Color = MaterialTheme.colorScheme.surfaceContainer
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(6.dp)
+            .clip(CircleShape)
+            .background(track)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(ratio.coerceIn(0f, 1f))
+                .fillMaxHeight()
+                .background(color, CircleShape)
         )
     }
-    Text(
-        if (remaining >= 0) "Sisa ${formatRupiah(remaining)}"
-        else "Lewat ${formatRupiah(-remaining)}",          // tanda minus dibalik supaya tampil positif
-        style = MaterialTheme.typography.bodySmall,
-        color = if (remaining >= 0) Color.Unspecified else MaterialTheme.colorScheme.error
-    )
 }
