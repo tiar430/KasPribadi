@@ -139,7 +139,6 @@ fun AppNavigation(db: AppDatabase) {
             composable<AccountsRoute> {
                 AccountListScreen(
                     db = db,
-                    onBack = { navController.safePop() },
                     onAdd = { navController.navigate(AccountFormRoute()) },
                     onEdit = { id -> navController.navigate(AccountFormRoute(editId = id)) },
                     onPayCard = { cardId, amount ->
@@ -166,7 +165,7 @@ fun AppNavigation(db: AppDatabase) {
             } // akhir SearchRoute
 
             composable<StatsRoute> {
-                StatsScreen(db = db, onBack = { navController.safePop() })
+                StatsScreen(db = db)
             } // akhir StatsRoute
 
             composable<MoreRoute> {

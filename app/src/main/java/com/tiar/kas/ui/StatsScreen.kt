@@ -63,7 +63,7 @@ private const val NO_CATEGORY = -1L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StatsScreen(db: AppDatabase, onBack: () -> Unit) {
+fun StatsScreen(db: AppDatabase) {
     val dao = db.transactionDao()
 
     var month by rememberSaveable { mutableStateOf(YearMonth.now()) }

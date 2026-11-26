@@ -333,6 +333,13 @@ fun TransactionFormScreen(
 					label = "Tanggal",
 					value = formatDateOnly(dateMillis),
 					onClick = { openDatePicker() },
+					modifier = Modifier.weight(1.6f)
+				)
+				FormClickRow(
+					icon = Icons.Outlined.Schedule,
+					label = "Jam",
+					value = formatTime(dateMillis),
+					onClick = { openTimePicker() },
 					modifier = Modifier.weight(1f)
 				)
 			}

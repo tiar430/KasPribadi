@@ -61,7 +61,6 @@ private fun AccountGroup.icon(): ImageVector = when (this) {
 @Composable
 fun AccountListScreen(
 	db: AppDatabase,
-	onBack: () -> Unit,
 	onAdd: () -> Unit,
 	onEdit: (Long) -> Unit,
 	onPayCard: (Long, Long) -> Unit
